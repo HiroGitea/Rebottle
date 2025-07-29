@@ -1,0 +1,149 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: dv2macdv.exe
+            asset_name: dv2macdv-windows-x64.exe
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: dv2macdv
+            asset_name: dv2macdv-linux-x64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: dv2macdv
+            asset_name: dv2macdv-macos-x64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: dv2macdv
+            asset_name: dv2macdv-macos-arm64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
+
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-${{ matrix.target }}-
+
+    - name: Install system dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          pkg-config \
+          libfontconfig1-dev \
+          libfreetype6-dev \
+          libxkbcommon-dev \
+          libwayland-dev \
+          libx11-dev \
+          libxrandr-dev \
+          libxi-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev
+
+    - name: Build
+      run: cargo build --release --target ${{ matrix.target }}
+
+    - name: Create artifact directory
+      run: mkdir -p artifacts
+
+    - name: Copy binary (Windows)
+      if: matrix.os == 'windows-latest'
+      run: copy target\${{ matrix.target }}\release\${{ matrix.artifact_name }} artifacts\${{ matrix.asset_name }}
+
+    - name: Copy binary (Unix)
+      if: matrix.os != 'windows-latest'
+      run: cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} artifacts/${{ matrix.asset_name }}
+
+    - name: Copy assets
+      run: |
+        mkdir -p artifacts/assets
+        cp -r assets/* artifacts/assets/ || true
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.asset_name }}
+        path: artifacts/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Create zip packages
+      run: |
+        cd artifacts
+        for dir in */; do
+          if [ -d "$dir" ]; then
+            cd "$dir"
+            zip -r "../${dir%/}.zip" .
+            cd ..
+          fi
+        done
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        name: Release ${{ github.ref_name }}
+        body: |
+          ## 杜比视界 MKV 转 MP4 工具 - ${{ github.ref_name }}
+          
+          ### 下载说明
+          - **Windows**: 下载 `dv2macdv-windows-x64.zip`
+          - **macOS (Intel)**: 下载 `dv2macdv-macos-x64.zip`
+          - **macOS (Apple Silicon)**: 下载 `dv2macdv-macos-arm64.zip`
+          - **Linux**: 下载 `dv2macdv-linux-x64.zip`
+          
+          ### 功能特性
+          - 将杜比视界 MKV 文件转换为兼容 QuickTime 的 MP4 格式
+          - 支持多种帧率设置
+          - 可选择包含字幕
+          - 跨平台支持
+          
+          ### 使用前准备
+          请确保系统已安装以下工具：
+          - `mkvextract` (MKVToolNix)
+          - `ffmpeg`
+          - `mp4muxer`
+          - `MP4Box` (GPAC，可选，用于字幕合并)
+        files: artifacts/*.zip
+        draft: false
+        prerelease: false 
