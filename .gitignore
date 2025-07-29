@@ -1,0 +1,5 @@
+/target
+build.sh
+build.ps1
+.DS_Store
+Cargo.lock
