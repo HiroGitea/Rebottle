@@ -1,12 +1,11 @@
 use iced::widget::{
-    button, column, container, progress_bar, row, scrollable, text,
-    checkbox, pick_list, Space
+    Space, button, checkbox, column, container, pick_list, progress_bar, row, scrollable, text,
 };
 use iced::{Alignment, Element, Length, Task, Theme};
+use resvg::usvg;
+use rfd::FileDialog;
 use std::path::PathBuf;
 use std::process::Command;
-use rfd::FileDialog;
-use resvg::usvg;
 use tiny_skia::Pixmap;
 
 #[derive(Debug, Clone)]
@@ -23,21 +22,16 @@ pub struct App {
     processing: bool,
     progress: f32,
     log_messages: Vec<String>,
-    
-    // 临时文件
-    temp_video: Option<PathBuf>,
-    temp_audio: Option<PathBuf>,
-    temp_subtitles: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FrameRate {
-    Film23976,  // 24000/1001
-    Film24,     // 24
-    Tv29970,    // 30000/1001  
-    Tv25,       // 25
-    Hfr60,      // 60
-    Hfr59940,   // 60000/1001
+    Film23976, // 24000/1001
+    Film24,    // 24
+    Tv29970,   // 30000/1001
+    Tv25,      // 25
+    Hfr60,     // 60
+    Hfr59940,  // 60000/1001
 }
 
 impl FrameRate {
@@ -49,9 +43,9 @@ impl FrameRate {
             FrameRate::Tv25 => "25.000 (25)",
             FrameRate::Hfr60 => "60.000 (60)",
             FrameRate::Hfr59940 => "59.940 (60000/1001)",
-}
+        }
     }
-    
+
     fn to_value(&self) -> &'static str {
         match self {
             FrameRate::Film23976 => "24000/1001",
@@ -74,9 +68,6 @@ impl Default for App {
             processing: false,
             progress: 0.0,
             log_messages: Vec::new(),
-            temp_video: None,
-            temp_audio: None,
-            temp_subtitles: None,
         }
     }
 }
@@ -108,7 +99,7 @@ impl App {
             }
             Message::SelectOutputFolder => {
                 Task::perform(select_output_folder(), Message::OutputFolderSelected)
-        }
+            }
             Message::OutputFolderSelected(path) => {
                 self.output_folder = path;
                 Task::none()
@@ -126,15 +117,15 @@ impl App {
                     self.processing = true;
                     self.progress = 0.0;
                     self.log_messages.clear();
-                    
+
                     let input = input.clone();
                     let output = output.clone();
                     let frame_rate = self.frame_rate.clone();
                     let include_subtitles = self.include_subtitles;
-                    
+
                     Task::perform(
                         process_video(input, output, frame_rate, include_subtitles),
-                        Message::ProcessingComplete
+                        Message::ProcessingComplete,
                     )
                 } else {
                     Task::none()
@@ -151,14 +142,16 @@ impl App {
             Message::ProcessingComplete(result) => {
                 self.processing = false;
                 match result {
-                                         Ok(_) => {
-                         self.log_messages.push("✅ Processing completed successfully!".to_string());
-                         self.progress = 1.0;
-                     }
-                     Err(err) => {
-                         self.log_messages.push(format!("❌ Processing failed: {}", err));
-                         self.progress = 0.0;
-                     }
+                    Ok(_) => {
+                        self.log_messages
+                            .push("✅ Processing completed successfully!".to_string());
+                        self.progress = 1.0;
+                    }
+                    Err(err) => {
+                        self.log_messages
+                            .push(format!("❌ Processing failed: {err}"));
+                        self.progress = 0.0;
+                    }
                 }
                 Task::none()
             }
@@ -236,33 +229,31 @@ impl App {
         ]
         .spacing(10);
 
-        let process_section = column![
-            if self.processing {
-                column![
-                    text("Processing...").size(16),
-                    progress_bar(0.0..=1.0, self.progress)
-                ]
-                .spacing(5)
-            } else {
-                column![
-                    button("Start Processing")
-                        .on_press_maybe(
-                            if self.input_file.is_some() && self.output_folder.is_some() {
-                                Some(Message::StartProcessing)
-                            } else {
-                                None
-                            }
-                        )
-                        .style(|theme: &Theme, status| {
-                            button::Style {
-                                background: Some(iced::Background::Color(theme.palette().primary)),
-                                text_color: theme.palette().background,
-                                ..button::primary(theme, status)
-                            }
-                        })
-                ]
-            }
-        ];
+        let process_section = column![if self.processing {
+            column![
+                text("Processing...").size(16),
+                progress_bar(0.0..=1.0, self.progress)
+            ]
+            .spacing(5)
+        } else {
+            column![
+                button("Start Processing")
+                    .on_press_maybe(
+                        if self.input_file.is_some() && self.output_folder.is_some() {
+                            Some(Message::StartProcessing)
+                        } else {
+                            None
+                        }
+                    )
+                    .style(|theme: &Theme, status| {
+                        button::Style {
+                            background: Some(iced::Background::Color(theme.palette().primary)),
+                            text_color: theme.palette().background,
+                            ..button::primary(theme, status)
+                        }
+                    })
+            ]
+        }];
 
         let log_section = if !self.log_messages.is_empty() {
             column![
@@ -310,14 +301,14 @@ impl App {
                 log_section
             ]
             .spacing(20)
-            .max_width(800)
+            .max_width(800),
         )
         .padding(20)
         .center_x(Length::Fill)
         .width(Length::Fill)
         .height(Length::Fill)
-    .into()
-}
+        .into()
+    }
 }
 
 async fn select_input_file() -> Option<PathBuf> {
@@ -339,11 +330,11 @@ fn execute_command(command: &str, args: &[&str]) -> Result<std::process::Output,
     {
         let full_command = format!("{} {}", command, args.join(" "));
         Command::new("cmd")
-            .args(&["/C", &full_command])
+            .args(["/C", &full_command])
             .output()
-            .map_err(|e| format!("Failed to execute command: {}", e))
+            .map_err(|e| format!("Failed to execute command: {e}"))
     }
-    
+
     #[cfg(not(windows))]
     {
         Command::new(command)
@@ -361,94 +352,141 @@ async fn process_video(
 ) -> Result<(), String> {
     let input_stem = input_file.file_stem().unwrap().to_string_lossy();
     let temp_dir = std::env::temp_dir();
-    
+
     // 第1步: 提取视频流
-    let video_file = temp_dir.join(format!("{}_DV.hevc", input_stem));
-    
-    let output = execute_command("mkvextract", &[
-        "tracks",
-        &input_file.to_string_lossy(),
-        &format!("0:{}", video_file.to_string_lossy()),
-    ])?;
-    
+    let video_file = temp_dir.join(format!("{input_stem}_DV.hevc"));
+
+    let output = execute_command(
+        "mkvextract",
+        &[
+            "tracks",
+            &input_file.to_string_lossy(),
+            &format!("0:{}", video_file.to_string_lossy()),
+        ],
+    )?;
+
     if !output.status.success() {
-        return Err(format!("Video extraction failed: {}", String::from_utf8_lossy(&output.stderr)));
+        return Err(format!(
+            "Video extraction failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
     }
 
     // Step 2: Extract audio
-    let audio_file = temp_dir.join(format!("{}_audio.ec3", input_stem));
-    
-    let output = execute_command("ffmpeg", &[
-        "-i", &input_file.to_string_lossy(),
-        "-map", "0:a:0",
-        "-c", "copy",
-        &audio_file.to_string_lossy(),
-        "-y",
-    ])?;
+    let audio_file = temp_dir.join(format!("{input_stem}_audio.ec3"));
+
+    let output = execute_command(
+        "ffmpeg",
+        &[
+            "-i",
+            &input_file.to_string_lossy(),
+            "-map",
+            "0:a:0",
+            "-c",
+            "copy",
+            &audio_file.to_string_lossy(),
+            "-y",
+        ],
+    )?;
 
     if !output.status.success() {
-        return Err(format!("Audio extraction failed: {}", String::from_utf8_lossy(&output.stderr)));
+        return Err(format!(
+            "Audio extraction failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
     }
 
     // Step 3: Extract subtitles (if needed)
     let subtitle_file = if include_subtitles {
-        let subs = temp_dir.join(format!("{}_subs.srt", input_stem));
-        
-        let output = execute_command("ffmpeg", &[
-            "-i", &input_file.to_string_lossy(),
-            "-map", "0:s:0", 
-            "-c", "copy",
-            &subs.to_string_lossy(),
-            "-y",
-        ]);
+        let subs = temp_dir.join(format!("{input_stem}_subs.srt"));
+
+        let output = execute_command(
+            "ffmpeg",
+            &[
+                "-i",
+                &input_file.to_string_lossy(),
+                "-map",
+                "0:s:0",
+                "-c",
+                "copy",
+                &subs.to_string_lossy(),
+                "-y",
+            ],
+        );
 
         match output {
             Ok(out) if out.status.success() => Some(subs),
-            _ => None // Subtitle extraction failed, continue without subtitles
-            }
+            _ => None, // Subtitle extraction failed, continue without subtitles
+        }
     } else {
         None
     };
 
     // Step 4: Remux using mp4muxer
-    let output_file = output_folder.join(format!("{}_dvh1.mp4", input_stem));
-    
-    let output = execute_command("mp4muxer", &[
-        "-o", &output_file.to_string_lossy(),
-        "-i", &video_file.to_string_lossy(),
-        "--input-video-frame-rate", frame_rate.to_value(),
-        "-i", &audio_file.to_string_lossy(),
-        "--dv-profile", "5",
-        "--dvh1flag", "0",
-    ])?;
+    let output_file = output_folder.join(format!("{input_stem}_dvh1.mp4"));
+
+    let output = execute_command(
+        "mp4muxer",
+        &[
+            "-o",
+            &output_file.to_string_lossy(),
+            "-i",
+            &video_file.to_string_lossy(),
+            "--input-video-frame-rate",
+            frame_rate.to_value(),
+            "-i",
+            &audio_file.to_string_lossy(),
+            "--dv-profile",
+            "5",
+            "--dvh1flag",
+            "0",
+        ],
+    )?;
 
     if !output.status.success() {
-        return Err(format!("MP4 muxing failed: {}", String::from_utf8_lossy(&output.stderr)));
+        return Err(format!(
+            "MP4 muxing failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
     }
 
     // Step 5: Process subtitles (if available)
     if let Some(ref subtitle_file) = subtitle_file {
-        let subs_mp4 = temp_dir.join(format!("{}_subs.mp4", input_stem));
-        let final_output = output_folder.join(format!("{}_dvh1_with_subs.mp4", input_stem));
-        
+        let subs_mp4 = temp_dir.join(format!("{input_stem}_subs.mp4"));
+        let final_output = output_folder.join(format!("{input_stem}_dvh1_with_subs.mp4"));
+
         // Convert subtitle format
-        let output = execute_command("ffmpeg", &[
-            "-i", &subtitle_file.to_string_lossy(),
-            "-c:s", "mov_text",
-            &subs_mp4.to_string_lossy(),
-            "-y",
-        ])?;
+        let output = execute_command(
+            "ffmpeg",
+            &[
+                "-i",
+                &subtitle_file.to_string_lossy(),
+                "-c:s",
+                "mov_text",
+                &subs_mp4.to_string_lossy(),
+                "-y",
+            ],
+        )?;
 
         if output.status.success() {
             // Merge subtitles
-            let output = execute_command("MP4Box", &[
-                "-add", &output_file.to_string_lossy(),
-                "-add", &subs_mp4.to_string_lossy(),
-                "-new", &final_output.to_string_lossy(),
-            ])?;
+            let output = execute_command(
+                "MP4Box",
+                &[
+                    "-add",
+                    &output_file.to_string_lossy(),
+                    "-add",
+                    &subs_mp4.to_string_lossy(),
+                    "-new",
+                    &final_output.to_string_lossy(),
+                ],
+            )?;
 
             if !output.status.success() {
-                return Err(format!("Subtitle merging failed: {}", String::from_utf8_lossy(&output.stderr)));
+                return Err(format!(
+                    "Subtitle merging failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                ));
             }
         }
     }
@@ -472,23 +510,23 @@ impl std::fmt::Display for FrameRate {
 fn load_svg_icon() -> Option<iced::window::Icon> {
     // 读取SVG文件
     let svg_data = std::fs::read_to_string("assets/icons/icon.svg").ok()?;
-    
+
     // 解析SVG
     let options = usvg::Options::default();
     let tree = usvg::Tree::from_str(&svg_data, &options).ok()?;
-    
+
     // 创建32x32的画布
     let size = 32;
     let mut pixmap = Pixmap::new(size, size)?;
-    
+
     // 渲染SVG到画布
     let scale = size as f32 / tree.size().width().max(tree.size().height());
     let transform = tiny_skia::Transform::from_scale(scale, scale);
     resvg::render(&tree, transform, &mut pixmap.as_mut());
-    
+
     // 转换为RGBA数据
     let rgba_data = pixmap.take();
-    
+
     // 创建窗口图标
     iced::window::icon::from_rgba(rgba_data, size, size).ok()
 }
