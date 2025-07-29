@@ -13,11 +13,9 @@ pub struct App {
     // 文件路径
     input_file: Option<PathBuf>,
     output_folder: Option<PathBuf>,
-    
     // 处理选项
     include_subtitles: bool,
     frame_rate: FrameRate,
-    
     // 状态
     processing: bool,
     progress: f32,
