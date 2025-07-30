@@ -54,7 +54,7 @@
 1. 克隆项目：
 ```bash
 git clone <repository-url>
-cd dv2macdv
+cd Rebottle
 ```
 
 2. 编译当前平台：
