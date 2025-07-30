@@ -515,7 +515,7 @@ fn execute_command(command: &str, args: &[&str]) -> Result<std::process::Output,
         Command::new(command)
             .args(args)
             .output()
-            .map_err(|e| format!("Failed to execute command {}: {}", command, e))
+            .map_err(|e| format!("Failed to execute command {command}: {e}"))
     }
 }
 
