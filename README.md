@@ -45,13 +45,7 @@
 
 ### 跨平台编译说明
 
-**注意：** 跨平台编译可能需要额外的链接器和工具链：
-
-- **在 Windows 上编译 Linux 目标**：需要安装 WSL 或相应的交叉编译工具
-- **在 Linux 上编译 Windows 目标**：需要安装 `mingw-w64`
-- **在任何平台编译 macOS 目标**：需要 macOS SDK（通常需要在 macOS 上编译）
-
-最简单的方法是在目标平台上直接编译。
+**注意：** 跨平台编译可能需要额外的链接器和工具链，最简单的方法是在目标平台上直接编译。
 
 ## 编译和运行
 
@@ -73,66 +67,6 @@ cargo build --release
 cargo run --release
 ```
 
-### 跨平台编译
-
-本项目支持以下平台的交叉编译：
-
-- **Windows** (x86_64-pc-windows-msvc)
-- **Linux** (x86_64-unknown-linux-gnu)  
-- **macOS Intel** (x86_64-apple-darwin)
-- **macOS Apple Silicon** (aarch64-apple-darwin)
-
-#### Windows (PowerShell)
-
-```powershell
-# 构建所有平台
-.\build.ps1 all -Release
-
-# 构建特定平台
-.\build.ps1 windows -Release
-.\build.ps1 linux -Release
-.\build.ps1 macos -Release
-.\build.ps1 macos-arm -Release
-
-# 调试构建
-.\build.ps1 all
-```
-
-#### Linux/macOS (Bash)
-
-```bash
-# 给脚本执行权限
-chmod +x build.sh
-
-# 构建所有平台
-./build.sh all --release
-
-# 构建特定平台
-./build.sh windows --release
-./build.sh linux --release
-./build.sh macos --release
-./build.sh macos-arm --release
-
-# 调试构建
-./build.sh all
-```
-
-#### 手动交叉编译
-
-```bash
-# 添加目标平台
-rustup target add x86_64-unknown-linux-gnu
-rustup target add x86_64-apple-darwin
-rustup target add aarch64-apple-darwin
-
-# 编译特定平台
-cargo build --release --target x86_64-pc-windows-msvc
-cargo build --release --target x86_64-unknown-linux-gnu
-cargo build --release --target x86_64-apple-darwin
-cargo build --release --target aarch64-apple-darwin
-```
-
-编译完成后，可执行文件将位于标准的 `target/[目标三元组]/[构建模式]/` 目录中，同时会在 `target/[目标三元组]/[构建模式]-release/` 目录中创建带平台名称的副本。
 
 ## 使用说明
 
@@ -154,14 +88,6 @@ cargo build --release --target aarch64-apple-darwin
 - 基本输出：`[原文件名]_dvh1.mp4` - 包含杜比视界视频和音频
 - 带字幕输出：`[原文件名]_dvh1_with_subs.mp4` - 包含杜比视界、音频和字幕
 
-### 构建输出位置
-- **标准位置**：`target/[目标三元组]/[debug|release]/dv2macdv[.exe]`
-- **平台命名副本**：`target/[目标三元组]/[debug|release]-release/dv2macdv-[平台名][.exe]`
-
-例如：
-- Windows: `target/x86_64-pc-windows-msvc/release/dv2macdv.exe`
-- Linux: `target/x86_64-unknown-linux-gnu/release/dv2macdv`
-- macOS: `target/x86_64-apple-darwin/release/dv2macdv`
 
 ## 技术说明
 
