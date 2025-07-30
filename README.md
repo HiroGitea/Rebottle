@@ -1,5 +1,5 @@
 # 杜比视界 MKV 转 MP4 工具
-![图片](assets\icons\icon.svg "Icon")
+![图片](assets/icons/icon.svg "Icon")
 
 这是一个基于 Rust 和 Iced GUI 框架开发的工具，用于将杜比视界 Profile 5 的 MKV 文件转换为支持 QuickTime `dvh1` 格式的 MP4 文件。
 
