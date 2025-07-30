@@ -1,8 +1,8 @@
+use iced::event::{self, Event};
 use iced::widget::{
     Space, button, checkbox, column, container, pick_list, progress_bar, row, scrollable, text,
 };
 use iced::{Alignment, Element, Length, Task, Theme};
-use iced::event::{self, Event};
 use resvg::usvg;
 use rfd::FileDialog;
 use std::path::PathBuf;
@@ -100,18 +100,16 @@ pub enum Message {
 
 impl App {
     fn subscription(&self) -> iced::Subscription<Message> {
-        event::listen().map(|event| {
-            match event {
-                Event::Window(iced::window::Event::FileDropped(path)) => {
-                    if let Some(extension) = path.extension() {
-                        if extension.to_string_lossy().to_lowercase() == "mkv" {
-                            return Message::FilesDropped(vec![path]);
-                        }
+        event::listen().map(|event| match event {
+            Event::Window(iced::window::Event::FileDropped(path)) => {
+                if let Some(extension) = path.extension() {
+                    if extension.to_string_lossy().to_lowercase() == "mkv" {
+                        return Message::FilesDropped(vec![path]);
                     }
-                    Message::FilesDropped(vec![])
                 }
-                _ => Message::FilesDropped(vec![])
+                Message::FilesDropped(vec![])
             }
+            _ => Message::FilesDropped(vec![]),
         })
     }
 
@@ -248,8 +246,9 @@ impl App {
         .spacing(10)
         .align_y(Alignment::Center);
 
-        let queue_list = if self.file_queue.is_empty() {
-            container(
+        let queue_list =
+            if self.file_queue.is_empty() {
+                container(
                 text("No files. Drag and drop MKV files here or click the button above to select")
                     .size(14)
                     .style(|_theme: &Theme| text::Style {
@@ -267,49 +266,57 @@ impl App {
                 },
                 ..Default::default()
             })
-        } else {
-            container(
-                scrollable(
-                    column(
-                        self.file_queue
-                            .iter()
-                            .enumerate()
-                            .map(|(index, file)| {
-                                row![
-                                    text(format!("{}. {}", index + 1, 
-                                        file.file_name().unwrap_or_default().to_string_lossy()))
+            } else {
+                container(
+                    scrollable(
+                        column(
+                            self.file_queue
+                                .iter()
+                                .enumerate()
+                                .map(|(index, file)| {
+                                    row![
+                                        text(format!(
+                                            "{}. {}",
+                                            index + 1,
+                                            file.file_name().unwrap_or_default().to_string_lossy()
+                                        ))
                                         .size(12)
                                         .width(Length::Fill),
-                                    button("Remove").on_press(Message::RemoveFileFromQueue(index))
-                                        .style(|theme: &Theme, _status| {
-                                            button::Style {
-                                                background: Some(iced::Background::Color(iced::Color::from_rgb(0.8, 0.2, 0.2))),
-                                                text_color: iced::Color::WHITE,
-                                                ..button::primary(theme, _status)
-                                            }
-                                        })
-                                ]
-                                .spacing(10)
-                                .align_y(Alignment::Center)
-                                .into()
-                            })
-                            .collect::<Vec<_>>()
+                                        button("Remove")
+                                            .on_press(Message::RemoveFileFromQueue(index))
+                                            .style(|theme: &Theme, _status| {
+                                                button::Style {
+                                                    background: Some(iced::Background::Color(
+                                                        iced::Color::from_rgb(0.8, 0.2, 0.2),
+                                                    )),
+                                                    text_color: iced::Color::WHITE,
+                                                    ..button::primary(theme, _status)
+                                                }
+                                            })
+                                    ]
+                                    .spacing(10)
+                                    .align_y(Alignment::Center)
+                                    .into()
+                                })
+                                .collect::<Vec<_>>(),
+                        )
+                        .spacing(5),
                     )
-                    .spacing(5)
+                    .height(Length::Fixed(150.0)),
                 )
-                .height(Length::Fixed(150.0))
-            )
-            .padding(10)
-            .style(|_theme: &Theme| container::Style {
-                background: Some(iced::Background::Color(iced::Color::from_rgb(0.05, 0.05, 0.05))),
-                border: iced::Border {
-                    color: iced::Color::from_rgb(0.3, 0.3, 0.3),
-                    width: 1.0,
-                    radius: 4.0.into(),
-                },
-                ..Default::default()
-            })
-        };
+                .padding(10)
+                .style(|_theme: &Theme| container::Style {
+                    background: Some(iced::Background::Color(iced::Color::from_rgb(
+                        0.05, 0.05, 0.05,
+                    ))),
+                    border: iced::Border {
+                        color: iced::Color::from_rgb(0.3, 0.3, 0.3),
+                        width: 1.0,
+                        radius: 4.0.into(),
+                    },
+                    ..Default::default()
+                })
+            };
 
         let input_section = column![queue_header, queue_list].spacing(10);
 
@@ -403,7 +410,9 @@ impl App {
                     .height(Length::Fixed(150.0))
                 )
                 .style(|_theme: &Theme| container::Style {
-                    background: Some(iced::Background::Color(iced::Color::from_rgb(0.1, 0.1, 0.1))),
+                    background: Some(iced::Background::Color(iced::Color::from_rgb(
+                        0.1, 0.1, 0.1
+                    ))),
                     border: iced::Border {
                         color: iced::Color::from_rgb(0.3, 0.3, 0.3),
                         width: 1.0,
@@ -440,7 +449,9 @@ impl App {
                 .width(Length::Fill)
             )
             .style(|_theme: &Theme| container::Style {
-                background: Some(iced::Background::Color(iced::Color::from_rgb(0.1, 0.1, 0.1))),
+                background: Some(iced::Background::Color(iced::Color::from_rgb(
+                    0.1, 0.1, 0.1
+                ))),
                 border: iced::Border {
                     color: iced::Color::from_rgb(0.3, 0.3, 0.3),
                     width: 1.0,
@@ -510,23 +521,23 @@ fn execute_command(command: &str, args: &[&str]) -> Result<std::process::Output,
 
 // 新增：带有终端日志记录的命令执行函数
 async fn execute_command_with_logging(
-    command: &str, 
-    args: &[&str]
+    command: &str,
+    args: &[&str],
 ) -> (Result<std::process::Output, String>, Vec<String>) {
     let mut logs = Vec::new();
-    
+
     // 记录要执行的命令
     let full_command = if args.is_empty() {
-        format!("$ {}", command)
+        format!("$ {command}")
     } else {
-        format!("$ {} {}", command, args.join(" "))
+        format!("$ {command} {}", args.join(" "))
     };
-    
+
     logs.push(full_command);
 
     // 执行命令
     let result = execute_command(command, args);
-    
+
     // 记录执行结果
     match &result {
         Ok(output) => {
@@ -540,10 +551,10 @@ async fn execute_command_with_logging(
             }
         }
         Err(e) => {
-            logs.push(format!("Error: {}", e));
+            logs.push(format!("Error: {e}"));
         }
     }
-    
+
     (result, logs)
 }
 
@@ -569,15 +580,19 @@ async fn process_video_with_logs(
             &input_file.to_string_lossy(),
             &format!("0:{}", video_file.to_string_lossy()),
         ],
-    ).await;
+    )
+    .await;
     all_logs.append(&mut logs);
 
     match output {
         Ok(out) if !out.status.success() => {
-            return (Err(format!(
-                "Video extraction failed: {}",
-                String::from_utf8_lossy(&out.stderr)
-            )), all_logs);
+            return (
+                Err(format!(
+                    "Video extraction failed: {}",
+                    String::from_utf8_lossy(&out.stderr)
+                )),
+                all_logs,
+            );
         }
         Err(e) => return (Err(e), all_logs),
         _ => {}
@@ -599,15 +614,19 @@ async fn process_video_with_logs(
             &audio_file.to_string_lossy(),
             "-y",
         ],
-    ).await;
+    )
+    .await;
     all_logs.append(&mut logs);
 
     match output {
         Ok(out) if !out.status.success() => {
-            return (Err(format!(
-                "Audio extraction failed: {}",
-                String::from_utf8_lossy(&out.stderr)
-            )), all_logs);
+            return (
+                Err(format!(
+                    "Audio extraction failed: {}",
+                    String::from_utf8_lossy(&out.stderr)
+                )),
+                all_logs,
+            );
         }
         Err(e) => return (Err(e), all_logs),
         _ => {}
@@ -630,7 +649,8 @@ async fn process_video_with_logs(
                 &subs.to_string_lossy(),
                 "-y",
             ],
-        ).await;
+        )
+        .await;
         all_logs.append(&mut logs);
 
         match output {
@@ -664,15 +684,19 @@ async fn process_video_with_logs(
             "--dvh1flag",
             "0",
         ],
-    ).await;
+    )
+    .await;
     all_logs.append(&mut logs);
 
     match output {
         Ok(out) if !out.status.success() => {
-            return (Err(format!(
-                "MP4 muxing failed: {}",
-                String::from_utf8_lossy(&out.stderr)
-            )), all_logs);
+            return (
+                Err(format!(
+                    "MP4 muxing failed: {}",
+                    String::from_utf8_lossy(&out.stderr)
+                )),
+                all_logs,
+            );
         }
         Err(e) => return (Err(e), all_logs),
         _ => {}
@@ -695,7 +719,8 @@ async fn process_video_with_logs(
                 &subs_mp4.to_string_lossy(),
                 "-y",
             ],
-        ).await;
+        )
+        .await;
         all_logs.append(&mut logs);
 
         if let Ok(out) = output {
@@ -711,15 +736,19 @@ async fn process_video_with_logs(
                         "-new",
                         &final_output.to_string_lossy(),
                     ],
-                ).await;
+                )
+                .await;
                 all_logs.append(&mut logs);
 
                 if let Ok(out) = output {
                     if !out.status.success() {
-                        return (Err(format!(
-                            "Subtitle merging failed: {}",
-                            String::from_utf8_lossy(&out.stderr)
-                        )), all_logs);
+                        return (
+                            Err(format!(
+                                "Subtitle merging failed: {}",
+                                String::from_utf8_lossy(&out.stderr)
+                            )),
+                            all_logs,
+                        );
                     }
                 }
             }
@@ -747,31 +776,47 @@ async fn process_video_queue_with_logs(
 ) -> (Result<(), String>, Vec<String>) {
     let mut all_logs = Vec::new();
     let total_files = files.len();
-    
-    all_logs.push(format!("Starting batch processing of {} files...", total_files));
-    
+
+    all_logs.push(format!(
+        "Starting batch processing of {total_files} files..."
+    ));
+
     for (index, file) in files.iter().enumerate() {
-        all_logs.push(format!("Processing file {}/{}: {}", 
-            index + 1, total_files, file.file_name().unwrap_or_default().to_string_lossy()));
-        
+        all_logs.push(format!(
+            "Processing file {}/{}: {}",
+            index + 1,
+            total_files,
+            file.file_name().unwrap_or_default().to_string_lossy()
+        ));
+
         let (result, mut logs) = process_video_with_logs(
             file.clone(),
             output_folder.clone(),
             frame_rate.clone(),
-            include_subtitles
-        ).await;
-        
+            include_subtitles,
+        )
+        .await;
+
         all_logs.append(&mut logs);
-        
+
         if let Err(e) = result {
-            all_logs.push(format!("File processing failed: {}", e));
-            return (Err(format!("Batch processing failed at file {}: {}", index + 1, e)), all_logs);
+            all_logs.push(format!("File processing failed: {e}"));
+            return (
+                Err(format!(
+                    "Batch processing failed at file {}: {}",
+                    index + 1,
+                    e
+                )),
+                all_logs,
+            );
         }
-        
+
         all_logs.push(format!("✅ File {}/{} completed", index + 1, total_files));
     }
-    
-    all_logs.push(format!("🎉 All {} files processed successfully!", total_files));
+
+    all_logs.push(format!(
+        "🎉 All {total_files} files processed successfully!"
+    ));
     (Ok(()), all_logs)
 }
 
